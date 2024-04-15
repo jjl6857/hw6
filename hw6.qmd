@@ -1,14 +1,14 @@
 ---
 title: "Homework 6"
-author: "[Insert your name here]{style='background-color: yellow;'}"
+author: "[jiaxi li]{style='background-color: yellow;'}"
 toc: true
 title-block-banner: true
 title-block-style: default
 execute: 
   freeze: true
   cache: true
-# format:
-  html: # comment this line to get pdf
+format:
+  # html: # comment this line to get pdf
   pdf: 
     fig-width: 7
     fig-height: 7

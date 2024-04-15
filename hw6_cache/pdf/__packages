@@ -1,0 +1,10 @@
+tibble
+dplyr
+readr
+tidyr
+purrr
+broom
+magrittr
+corrplot
+carData
+car
