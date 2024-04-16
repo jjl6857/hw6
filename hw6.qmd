@@ -48,6 +48,11 @@ packages <- c(
 sapply(packages, require, character.only=T)
 ```
 
+```{R}
+library(factoextra)
+```
+
+
 <br><br><br><br>
 ---
 
@@ -68,11 +73,18 @@ Read the data file as a tibble in R. Preprocess the data such that:
 2. all column names to lower case for consistency
 3. Any observations with missing values are dropped
 
-```R
+```{R}
 path <- "data/spending.csv"
 
-df <- ... # Insert your code here
+df <- read_csv(path) %>%
+mutate_if(is.character, as.factor) %>%
+rename_with(tolower) %>%
+drop_na() # Insert your code here
+
+head(df)
 ```
+
+
 
 ---
 
@@ -80,9 +92,14 @@ df <- ... # Insert your code here
 
 Visualize the correlation between the variables using the `corrplot()` function. What do you observe? What does this mean for the model?
 
-```R
-df_x  %>% ... # Insert your code here
+```{R}
+correlation_matrix <- cor(df)
+
+df_x <- corrplot(correlation_matrix, method = "color")
+df_x
 ```
+# Dark blue squares indicate strong positive correlations, while white squares represent weak or no correlation.and the red indicate strong negative correlation
+# but i didn't see any red spot. they are whether weak or no correlation or positive correlations. and all make with retangle or square it  seem to cluster together with different area.
 
 ---
 
@@ -91,9 +108,12 @@ df_x  %>% ... # Insert your code here
 Run a linear regression model to predict the `income` variable using the remaining predictors. Interpret the coefficients and summarize your results. 
 
 
-```R
-... # Insert your code here
+```{R}
+model <- lm(income ~ ., data = df)
+
+summary(model) # Insert your code here
 ```
+
 
 ---
 
@@ -101,9 +121,15 @@ Run a linear regression model to predict the `income` variable using the remaini
 
 Diagnose the model using the `vif()` function. What do you observe? What does this mean for the model?
 
-```R
-... # Insert your code here
+```{R}
+vif_values <- vif(model)
+
+
+print(vif_values) # Insert your code here
 ```
+# High VIF values indicate strong multicollinearity among predictor variables.
+# from the result,it is not spread average. some high vif value  like groceries got 3136. and the jewelry only got 72.38215.
+# it mean this model combined variety of strong or weak multicollinearity among predictor variables
 
 ---
 
@@ -111,10 +137,12 @@ Diagnose the model using the `vif()` function. What do you observe? What does th
 
 Perform PCA using the `princomp` function in R. Print the summary of the PCA object.
 
-```R
-pca <- ... # Insert your code here
-... # Insert your code here
+```{R}
+pca <- princomp(df[-ncol(df)], cor = TRUE) # Insert your code here
+summary(pca) # Insert your code here
+
 ```
+
 
 ---
 
@@ -122,25 +150,32 @@ pca <- ... # Insert your code here
 
 Make a screeplot of the proportion of variance explained by each principal component. How many principal components would you choose to keep? Why?
 
-```R
-... # Insert your code here
+```{R}
+screeplot(pca, type = "line", main = "Screeplot of PCA") # Insert your code here
 ```
+# the first three components from this graph. from the fifth component, the marginal gain in explained variance is 0.
 
 
 ###### 1.6 (5 points)
 
 By setting any factor loadings below $0.2$ to $0$, summarize the factor loadings for the principal components that you chose to keep. 
 
-```R
-clean_loadings <- ... # Insert your code here
+```{R}
+clean_loadings <- pca$loadings
+clean_loadings[clean_loadings < 0.2] <- 0
+summary_loadings <- clean_loadings[, 1:3]
+print(summary_loadings)
 ```
+
 
 
 Visualize the factor loadings. 
 
-```R
-... # Insert your code here
+
+```{R}
+fviz_pca_var(pca, col.var = "blue")
 ```
+
 
 ---
 
@@ -150,35 +185,70 @@ Based on the factor loadings, what do you think the principal components represe
 
 Provide an interpreation for each principal component you chose to keep.
 
+# Principal Component 1 (Comp.1): This component represents discretionary spending.
+# Principal Component 2 (Comp.2): This component represents essential living expenses.
+# Principal Component 3 (Comp.3): This component represents leisure-related spending.
+
 ---
 
 ###### 1.8 (10 points)
 
 Create a new data frame with the original response variable `income` and the principal components you chose to keep. Call this data frame `df_pca`.
 
-```R
-... # Insert your code here
+```{R}
+df_pca <- cbind(df[, "income", drop = FALSE], pca$scores[, 1:3])
+
+# Rename the principal components
+colnames(df_pca)[2:4] <- paste0("PC", 1:3)
+
+# Display the first few rows of df_pca
+head(df_pca)
 ```
+
 
 Fit a regression model to predict the `income` variable using the principal components you chose to keep. Interpret the coefficients and summarize your results. 
 
-```R
-... # Insert your code here
+```{R}
+model_pca <- lm(income ~ PC1 + PC2 + PC3, data = df_pca)
+
+# Summarize the model
+summary(model_pca) # Insert your code here
 ```
+
 
 Compare the results of the regression model in 1.3 and 1.9. What do you observe? What does this mean for the model?
 
-```R
-... # Insert your code here
+```{R}
+compare_vif <- function(model1, model2) {
+  vif_values1 <- car::vif(model1)
+  vif_values2 <- car::vif(model2)
+  
+  comparison <- data.frame(
+    Model = c("Original Predictors", "Principal Components"),
+    Max_VIF = c(max(vif_values1), max(vif_values2))
+  )
+  
+  return(comparison)
+}
 
+comparison <- compare_vif(model, model_pca)
+print(comparison)# Insert your code here
 ```
+# the maxium of vif value from linear regression was 3927.165. but using the principal components i chose to keep just 1.0
+# Higher values signify that it is difficult to impossible to assess accurately the contribution of predictors to a model. therefore, my principal component could be more accurate to predict the model.
+
+
 ---
 
 ###### 1.10 (10 points)
 
 Based on your interpretation of the principal components from Question 1.7, provide an interpretation of the regression model in Question 1.9.
 
+# Understanding Coefficients: In the regression model, the coefficients of principal components show how much each component influences the prediction of income. A positive coefficient means increasing that component leads to higher predicted income, while a negative one means the opposite.
 
+#Understanding Principal Components: Principal components are blends of original variables, so to interpret regression coefficients, we look at how original variables relate to these components. We check factor loadings from PCA to see which variables contribute most to each component.
+
+# Reducing Dimensions: Using principal components in regression cuts down data dimensions while still capturing original variables' variance. This simplifies the model and can tackle issues like multicollinearity.
 
 ---
 

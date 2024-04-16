@@ -8,3 +8,5 @@ magrittr
 corrplot
 carData
 car
+ggplot2
+factoextra
